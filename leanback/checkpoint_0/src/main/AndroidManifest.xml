@@ -69,7 +69,6 @@
 
     <activity
       android:name="com.android.example.leanback.fastlane.LeanbackActivity"
-      android:label="@string/title_activity_player"
       android:theme="@style/AppTheme">
 
       <intent-filter>

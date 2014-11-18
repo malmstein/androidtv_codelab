@@ -23,34 +23,17 @@ import android.content.Loader;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.support.v17.leanback.database.CursorMapper;
+import android.support.v17.leanback.widget.CursorObjectAdapter;
+import android.support.v17.leanback.widget.ObjectAdapter;
 
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Created by anirudhd on 10/25/14.
- *
- *
  */
 public class VideoDataManager implements LoaderManager.LoaderCallbacks<Cursor> {
-    protected Loader<Cursor> mDataLoader;
-    protected Context mContext;
-    protected LoaderManager mLoaderManager;
-    protected int LOADER_ID;
-    protected Uri mRowUri;
-
-    public List<Video> getVideos() {
-        return videos;
-    }
-
-    public void setVideos(List<Video> videos) {
-        this.videos = videos;
-    }
-
-    List<Video> videos;
-    private final VideoItemMapper mMapper;
-
-
     public static String[] PROJECTION = {
             VideoItemContract.VideoItemColumns._ID,
             VideoItemContract.VideoItemColumns.TITLE,
@@ -62,15 +45,35 @@ public class VideoDataManager implements LoaderManager.LoaderCallbacks<Cursor> {
             VideoItemContract.VideoItemColumns.TAGS,
             VideoItemContract.VideoItemColumns.CONTENT_URL,
     };
-
-    public VideoDataManager(Context mContext, LoaderManager mLoaderManager, Uri mRowUri) {
+    private final ObjectAdapter mItemList;
+    private final VideoItemMapper mMapper;
+    protected Loader<Cursor> mDataLoader;
+    protected Context mContext;
+    protected LoaderManager mLoaderManager;
+    protected int LOADER_ID;
+    protected Uri mRowUri;
+    List<Video> videos;
+    public VideoDataManager(Context mContext, LoaderManager mLoaderManager, Uri mRowUri, ObjectAdapter objectAdapter) {
         this.mLoaderManager = mLoaderManager;
         this.mRowUri = mRowUri;
         this.mContext = mContext;
         LOADER_ID = mRowUri.hashCode();
         mMapper = new VideoItemMapper();
         videos = new ArrayList<Video>();
+        mItemList = objectAdapter;
+        ((CursorObjectAdapter) objectAdapter).setMapper(mMapper);
+    }
 
+    public List<Video> getVideos() {
+        return videos;
+    }
+
+    public void setVideos(List<Video> videos) {
+        this.videos = videos;
+    }
+
+    public ObjectAdapter getItemList() {
+        return mItemList;
     }
 
     public void startDataLoading() {
@@ -92,15 +95,19 @@ public class VideoDataManager implements LoaderManager.LoaderCallbacks<Cursor> {
         while (cursor.moveToNext()) {
             videos.add(mMapper.bind(cursor));
         }
+        if (mItemList instanceof CursorObjectAdapter) {
+            ((CursorObjectAdapter) mItemList).swapCursor(cursor);
+        }
     }
 
     public void onLoaderReset(Loader<Cursor> cursorLoader) {
-
+        if (mItemList instanceof CursorObjectAdapter) {
+            ((CursorObjectAdapter) mItemList).swapCursor(null);
+        }
     }
 
-    public static class VideoItemMapper {
+    public static class VideoItemMapper extends CursorMapper {
 
-        private int[] mColumnMap;
         private static final int ID = 0;
         private static final int TITLE = 1;
         private static final int CATEGORY = 2;
@@ -110,6 +117,7 @@ public class VideoDataManager implements LoaderManager.LoaderCallbacks<Cursor> {
         private static final int THUMB_IMG_URL = 6;
         private static final int TAGS = 6;
         private static final int CONTENT_URL = 6;
+        private int[] mColumnMap;
 
         public void bindColumns(Cursor cursor) {
             mColumnMap = new int[9];
